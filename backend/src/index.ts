@@ -11,6 +11,7 @@ import roomRoutes from './routes/roomRoutes';
 import ChatMessage from './models/ChatMessage';
 import Room from './models/Room';
 import runRoutes from './routes/runRoutes';
+
 dotenv.config();
 console.log('Loaded JWT_SECRET:', process.env.JWT_SECRET);
 
@@ -43,45 +44,47 @@ io.on('connection', (socket) => {
     await Room.findOneAndUpdate({ roomId }, { code }, { upsert: true });
   });
 
-  // Join a room and send saved data
+  // Join a room and send saved data + chat history
   socket.on('join-room', async ({ roomId, userId }) => {
-  // ✅ Step 1: Validate inputs
-  if (!roomId || !userId) {
-    console.warn('⚠️ join-room called with missing roomId or userId', { roomId, userId });
-    return; // Stop here if roomId or userId is invalid
-  }
-
-  // ✅ Step 2: Join socket room
-  socket.join(roomId);
-  console.log(`🔗 ${socket.id} joined room: ${roomId}`);
-
-  try {
-    // ✅ Step 3: Find or create the room
-    let room = await Room.findOne({ roomId });
-
-    if (!room) {
-      room = await Room.create({
-        roomId,
-        participants: [userId],
-        code: '',
-        language: 'javascript',
-      });
-    } else {
-      if (!room.participants.includes(userId)) {
-        room.participants.push(userId);
-        await room.save();
-      }
+    if (!roomId || !userId) {
+      console.warn('⚠️ join-room called with missing roomId or userId', { roomId, userId });
+      return;
     }
 
-    // ✅ Step 4: Send current room data to this user
-    socket.emit('load-room-data', {
-      code: room.code || '',
-      language: room.language || 'javascript',
-    });
-  } catch (err:any) {
-    console.error('❌ Failed to join room:', err.message);
-  }
-});
+    socket.join(roomId);
+    console.log(`🔗 ${socket.id} joined room: ${roomId}`);
+
+    try {
+      let room = await Room.findOne({ roomId });
+
+      if (!room) {
+        room = await Room.create({
+          roomId,
+          participants: [userId],
+          code: '',
+          language: 'javascript',
+        });
+      } else {
+        if (!room.participants.includes(userId)) {
+          room.participants.push(userId);
+          await room.save();
+        }
+      }
+
+      // Send current room data
+      socket.emit('load-room-data', {
+        code: room.code || '',
+        language: room.language || 'javascript',
+      });
+
+      // ✅ Send chat history
+      const chatHistory = await ChatMessage.find({ roomId }).sort({ createdAt: 1 });
+      socket.emit('load-chat-history', chatHistory);
+
+    } catch (err: any) {
+      console.error('❌ Failed to join room:', err.message);
+    }
+  });
 
   socket.on('disconnect', () => {
     console.log('🔴 User disconnected:', socket.id);
