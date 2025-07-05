@@ -2,7 +2,7 @@ import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "@/lib/clientPromise";
-import type { Session, User } from "next-auth";
+import type { Session, User, Account } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 
 export const authOptions: NextAuthOptions = {
@@ -24,8 +24,8 @@ export const authOptions: NextAuthOptions = {
       user,
     }: {
       token: JWT;
-      account?: any;
-      user?: User;
+      account: Account | null;
+      user?: User | null;
     }): Promise<JWT> {
       if (account) {
         token.accessToken = account.access_token;
