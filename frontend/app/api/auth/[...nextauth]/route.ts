@@ -1,8 +1,9 @@
-import NextAuth, { NextAuthOptions} from "next-auth";
-import { JWT } from "next-auth/jwt";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "@/lib/clientPromise";
+import type { Session, User } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -17,27 +18,43 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-  async jwt({ token, account, user }) {
-    if (account) {
-      token.accessToken = account.access_token;
-    }
-    if (user) {
-      token.id = (user as any).id || (user as any)._id;
-    }
-    return token;
+    async jwt({
+      token,
+      account,
+      user,
+    }: {
+      token: JWT;
+      account?: any;
+      user?: User;
+    }): Promise<JWT> {
+      if (account) {
+        token.accessToken = account.access_token;
+      }
+      if (user) {
+        token.id = user.id || (user as any)._id;
+      }
+      return token;
+    },
+
+    async session({
+      session,
+      token,
+    }: {
+      session: Session;
+      token: JWT;
+    }): Promise<Session> {
+      if (session.user) {
+        session.user.id = token.id as string;
+        (session as any).accessToken = token.accessToken;
+      }
+      return session;
+    },
+
+    async redirect({ baseUrl }: { baseUrl: string }) {
+      return `${baseUrl}/home`;
+    },
   },
-  async session({ session, token }) {
-    (session as any).accessToken = token.accessToken;
-    (session as any).user.id = token.id; // attach MongoDB userId to session
-    return session;
-  },
-  async redirect({ url, baseUrl }) {
-    return `${baseUrl}/home`;
-  },
-},
 };
 
 const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };    
-
-
+export { handler as GET, handler as POST };

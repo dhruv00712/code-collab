@@ -9,5 +9,5 @@
       "resolveJsonModule": true,
        "typeRoots": ["./node_modules/@types", "./src/types"]
     },
-    "include": ["src", "src/types.d.ts"] // ✅ Explicit include
+    "include": ["src", "src/types.d.ts"] 
   }

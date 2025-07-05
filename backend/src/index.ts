@@ -28,7 +28,7 @@ const io = new SocketIOServer(server, {
 const PORT = process.env.PORT || 8000;
 const MONGO_URL = process.env.MONGO_URL || '';
 
-// 🔌 WebSocket events
+// WebSocket events
 io.on('connection', (socket) => {
   console.log('🟢 User connected:', socket.id);
 
@@ -77,7 +77,7 @@ io.on('connection', (socket) => {
         language: room.language || 'javascript',
       });
 
-      // ✅ Send chat history
+      // Send chat history
       const chatHistory = await ChatMessage.find({ roomId }).sort({ createdAt: 1 });
       socket.emit('load-chat-history', chatHistory);
 
@@ -91,11 +91,11 @@ io.on('connection', (socket) => {
   });
 });
 
-// ✅ Middlewares
+//Middlewares
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 app.use(express.json());
 
-// ✅ Routes
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/rooms', roomRoutes);
@@ -105,7 +105,7 @@ app.get('/', (req, res) => {
   res.send('✅ Backend & WebSocket running...');
 });
 
-// Connect to MongoDB & start server
+
 mongoose.connect(MONGO_URL)
   .then(() => {
     console.log('✅ Connected to MongoDB');
@@ -118,7 +118,7 @@ mongoose.connect(MONGO_URL)
     process.exit(1);
   });
 
-// Graceful shutdown
+//  shutdown
 process.on('SIGINT', () => {
   console.log('🚨 Shutting down gracefully...');
   mongoose.connection.close()

@@ -25,9 +25,8 @@ export const authenticateToken = (
       return;
     }
 
-    // ✅ explicitly cast decoded to JwtPayload
     const payload = decoded as JwtPayload;
-    req.user = payload.userId; // ✅ user will always be a string now
+    req.user = payload.userId; // user will always be a string now
     next();
   });
 };
