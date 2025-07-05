@@ -31,6 +31,7 @@ export const authOptions: NextAuthOptions = {
         token.accessToken = account.access_token;
       }
       if (user) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         token.id = user.id || (user as any)._id;
       }
       return token;
@@ -45,6 +46,7 @@ export const authOptions: NextAuthOptions = {
     }): Promise<Session> {
       if (session.user) {
         session.user.id = token.id as string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session as any).accessToken = token.accessToken;
       }
       return session;
