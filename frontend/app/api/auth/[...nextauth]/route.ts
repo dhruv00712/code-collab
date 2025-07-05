@@ -1,4 +1,4 @@
-import NextAuth, { NextAuthOptions, Session, Account } from "next-auth";
+import NextAuth, { NextAuthOptions} from "next-auth";
 import { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
