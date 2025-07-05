@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:8000'); // Adjust to your backend
+const socket = io('http://localhost:8000'); 
 
 export default function ChatBox() {
   const [messages, setMessages] = useState<{ user: string; message: string }[]>([]);

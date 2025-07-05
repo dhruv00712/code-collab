@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { use } from 'react';
 
 export default function RoomPage({ params }: { params: Promise<{ roomId: string }> }) {
-  const { roomId } = use(params); // 👈 unwrap the promise
+  const { roomId } = use(params);
   const router = useRouter();
 
   const copyLinkToClipboard = () => {

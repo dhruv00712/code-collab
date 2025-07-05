@@ -28,7 +28,7 @@ export const authOptions: NextAuthOptions = {
   },
   async session({ session, token }) {
     (session as any).accessToken = token.accessToken;
-    (session as any).user.id = token.id; // ✅ attach MongoDB userId to session
+    (session as any).user.id = token.id; // attach MongoDB userId to session
     return session;
   },
   async redirect({ url, baseUrl }) {

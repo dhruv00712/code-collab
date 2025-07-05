@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { SessionProvider } from 'next-auth/react'; // ✅ import this
+import { SessionProvider } from 'next-auth/react'; 
 import './globals.css';
 
 import LogoutButton from '@/components/LogoutButton';

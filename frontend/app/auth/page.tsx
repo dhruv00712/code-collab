@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import AuthForm from '@/components/AuthForm';
+import Image from 'next/image';
+
 
 export default  function AuthPage() {
   const [isRegister, setIsRegister] = useState(false);
@@ -19,7 +21,12 @@ export default  function AuthPage() {
         onClick={() => signIn('google')}
         className="mt-6 px-4 py-2 border rounded flex items-center gap-2 hover:bg-gray-100 transition"
       >
-        <img src="/google-icon.svg" alt="Google" className="w-5 h-5" />
+          <Image
+                src="/google-icon.svg"
+                alt="Google"
+                width={20} 
+                height={20}
+            />
         Continue with Google
       </button>
 
