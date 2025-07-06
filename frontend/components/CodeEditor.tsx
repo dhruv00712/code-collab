@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:8000');
+const socket = io(process.env.NEXT_PUBLIC_API_URL!, {
+  transports: ['websocket'],
+  withCredentials: true,
+});
 
 interface CodeEditorProps {
   roomId: string;
@@ -56,11 +59,11 @@ export default function CodeEditor({ roomId }: CodeEditorProps) {
   setLoading(true);
   setOutput('');
   try {
-    const res = await fetch('http://localhost:8000/api/run', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, language }),
-    });
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code, language }),
+  });
 
     const result = await res.json();
 
