@@ -19,7 +19,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new SocketIOServer(server, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: ['https://code-collab-gules.vercel.app', 'http://localhost:3000'],
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -113,7 +113,7 @@ mongoose.connect(MONGO_URL)
   .then(() => {
     console.log('✅ Connected to MongoDB');
     server.listen(PORT, () => {
-      console.log(`🚀 Server running at http://localhost:${PORT}`);
+      console.log(`🚀 Server running at PORT ${PORT}`);
     });
   })
   .catch((err) => {
