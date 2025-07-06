@@ -40,7 +40,7 @@ export default function HomePage() {
           placeholder="Enter Room ID to Join"
           value={joinRoomId}
           onChange={(e) => setJoinRoomId(e.target.value)}
-          className="p-2 rounded border border-gray-300 text-black"
+          className="p-2 rounded border border-gray-600 bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           onClick={joinRoom}
