@@ -3,7 +3,11 @@
 import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:8000'); 
+const socket = io(process.env.NEXT_PUBLIC_API_URL!, {
+  transports: ['websocket'],
+  withCredentials: true,
+});
+
 
 export default function ChatBox() {
   const [messages, setMessages] = useState<{ user: string; message: string }[]>([]);
