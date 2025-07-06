@@ -7,9 +7,7 @@ export default function SessionTracker() {
   const { data: session } = useSession();
 
   useEffect(() => {
-    if (!session?.user) return;
-
-    const userId = session.user.id || session.user.email;
+    const userId = session?.user?.id;
 
     if (userId) {
       localStorage.setItem('userId', userId);

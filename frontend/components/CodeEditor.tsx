@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import io from 'socket.io-client';
+import debounce from 'lodash/debounce';
 
 const socket = io(process.env.NEXT_PUBLIC_API_URL!, {
   transports: ['websocket'],
@@ -18,8 +19,14 @@ export default function CodeEditor({ roomId }: CodeEditorProps) {
   const [code, setCode] = useState('// Start coding...');
   const [output, setOutput] = useState('');
   const [loading, setLoading] = useState(false);
-  const skipNextUpdate = useRef(false);   
+  const skipNextUpdate = useRef(false);
 
+  // Debounced socket emitter
+  const debouncedEmitCode = useRef(
+    debounce((newCode: string) => {
+      socket.emit('code-change', { roomId, code: newCode });
+    }, 200)
+  ).current;
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
@@ -52,33 +59,33 @@ export default function CodeEditor({ roomId }: CodeEditorProps) {
       skipNextUpdate.current = false;
       return;
     }
-    socket.emit('code-change', { roomId, code: value });
+    debouncedEmitCode(value);
   };
 
   const handleCompile = async () => {
-  setLoading(true);
-  setOutput('');
-  try {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/run`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, language }),
-  });
+    setLoading(true);
+    setOutput('');
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, language }),
+      });
 
-    const result = await res.json();
+      const result = await res.json();
 
-    if (result.status?.description !== 'Accepted') {
-      setOutput(result.compile_output || result.stderr || '❌ Compilation failed.');
-    } else {
-      setOutput(result.stdout?.trim() || '✅ No output.');
+      if (result.status?.description !== 'Accepted') {
+        setOutput(result.compile_output || result.stderr || '❌ Compilation failed.');
+      } else {
+        setOutput(result.stdout?.trim() || '✅ No output.');
+      }
+    } catch (err) {
+      console.error(err);
+      setOutput('❌ Error connecting to compiler API.');
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error(err);
-    setOutput('❌ Error connecting to compiler API.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="space-y-4">
