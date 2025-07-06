@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import io from 'socket.io-client';
 
 const socket = io(process.env.NEXT_PUBLIC_API_URL!, {
@@ -8,45 +9,49 @@ const socket = io(process.env.NEXT_PUBLIC_API_URL!, {
   withCredentials: true,
 });
 
-
 export default function ChatBox() {
+  const { data: session } = useSession(); //  get session from Google login
   const [messages, setMessages] = useState<{ user: string; message: string }[]>([]);
   const [input, setInput] = useState('');
   const [roomId, setRoomId] = useState('');
   const [user, setUser] = useState('User');
 
- useEffect(() => {
-  const storedRoomId = window.location.pathname.split('/').pop();
-  const storedUserId = localStorage.getItem('userId');
+  useEffect(() => {
+    const storedRoomId = window.location.pathname.split('/').pop();
+    const storedUserId = localStorage.getItem('userId');
+    const registeredName = localStorage.getItem('userName'); 
 
-  if (storedRoomId) {
-    setRoomId(storedRoomId);
+    if (storedRoomId) {
+      setRoomId(storedRoomId);
 
-    if (storedUserId) {
-      const userAlias = `User-${storedUserId.slice(-4)}`;
-      setUser(userAlias);
+      // Set user name from session (Google) or registered name or fallback
+      if (session?.user?.name) {
+        setUser(session.user.name);
+      } else if (registeredName) {
+        setUser(registeredName);
+      } else if (storedUserId) {
+        setUser(`User-${storedUserId.slice(-4)}`);
+      }
 
       socket.emit('join-room', {
         roomId: storedRoomId,
         userId: storedUserId,
       });
     }
-  }
 
-  socket.on('receive-message', (msg: { user: string; message: string }) => {
-    setMessages((prev) => [...prev, msg]);
-  });
+    socket.on('receive-message', (msg: { user: string; message: string }) => {
+      setMessages((prev) => [...prev, msg]);
+    });
 
-  socket.on('load-chat-history', (msgs: { user: string; message: string }[]) => {
-    setMessages(msgs);
-  });
+    socket.on('load-chat-history', (msgs: { user: string; message: string }[]) => {
+      setMessages(msgs);
+    });
 
-  return () => {
-    socket.off('receive-message');
-    socket.off('load-chat-history');
-  };
-}, []);
-
+    return () => {
+      socket.off('receive-message');
+      socket.off('load-chat-history');
+    };
+  }, [session]);
 
   const sendMessage = () => {
     if (!input.trim()) return;

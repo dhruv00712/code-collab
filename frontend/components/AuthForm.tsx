@@ -36,9 +36,11 @@ export default function AuthForm({ isRegister }: AuthFormProps) {
       }
 
       // Save userId in localStorage
-      if (data.user?._id) {
-        localStorage.setItem('userId', data.user._id);
-      }
+      if (data.user?._id && data.user?.name) {
+  localStorage.setItem('userId', data.user._id);
+  localStorage.setItem('userName', data.user.name); 
+}
+
 
       router.push('/home');
     } catch (err) {

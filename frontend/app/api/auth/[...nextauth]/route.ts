@@ -34,6 +34,8 @@ const handler = NextAuth({
       if (user) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         token.id = user.id || (user as any)._id;
+        token.name = user.name;
+        
       }
       return token;
     },
@@ -47,6 +49,7 @@ const handler = NextAuth({
     }): Promise<Session> {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.name = token.name as string;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session as any).accessToken = token.accessToken;
       }
