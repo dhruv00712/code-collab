@@ -16,7 +16,7 @@ export default function HistoryPage() {
   useEffect(() => {
     if (!userId) return;
 
-    fetch(`http://localhost:8000/api/rooms/${userId}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${userId}`)
       .then((res) => res.json())
       .then((data) => setRooms(data))
       .catch((err) => console.error('Error loading history:', err));
