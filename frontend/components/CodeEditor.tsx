@@ -65,6 +65,26 @@ export default function CodeEditor({ roomId }: CodeEditorProps) {
   const handleCompile = async () => {
     setLoading(true);
     setOutput('');
+
+    if (language === 'html' || language === 'css') {
+    const htmlContent =
+      language === 'html'
+        ? code
+        : `<style>${code}</style><div class="preview">CSS Preview Area</div>`;
+
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(htmlContent);
+      newWindow.document.close();
+      setOutput(' Opened output in a new tab.');
+    } else {
+      setOutput(' Popup blocked. Please allow popups.');
+    }
+
+    setLoading(false);
+    return;
+  }
+
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/run`, {
         method: 'POST',
