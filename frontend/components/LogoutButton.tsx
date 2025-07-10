@@ -5,7 +5,7 @@ import { signOut } from 'next-auth/react';
 export default function LogoutButton() {
   const handleLogout = () => {
     localStorage.removeItem('userId');
-    signOut({ callbackUrl: 'https://code-collab-gules.vercel.app/', redirect: true });
+    signOut({ callbackUrl: 'https://code-collab-gules.vercel.app/auth', redirect: true });
   };
 
   return (
