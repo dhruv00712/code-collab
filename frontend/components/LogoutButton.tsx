@@ -8,6 +8,7 @@ export default function LogoutButton() {
     signOut({ callbackUrl: 'https://code-collab-gules.vercel.app/auth', redirect: true });
   };
 
+  
   return (
     <button
       onClick={handleLogout}
