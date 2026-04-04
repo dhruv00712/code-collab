@@ -28,7 +28,10 @@ export default function AuthForm({ isRegister }: AuthFormProps) {
         }
       );
 
+
       const data = await res.json();
+      console.log(data);
+
 
       if (!res.ok) {
         setError(data.message || 'Something went wrong.');
@@ -37,9 +40,10 @@ export default function AuthForm({ isRegister }: AuthFormProps) {
 
       // Save userId in localStorage
       if (data.user?._id && data.user?.name) {
-  localStorage.setItem('userId', data.user._id);
-  localStorage.setItem('userName', data.user.name); 
-}
+        localStorage.setItem('userId', data.user._id);
+        localStorage.setItem('userName', data.user.name);
+        localStorage.setItem('token', data.token); // ← ADD THIS
+      }
 
 
       router.push('/home');
