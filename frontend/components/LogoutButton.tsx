@@ -1,3 +1,24 @@
+// 'use client';
+
+// import { signOut } from 'next-auth/react';
+
+// export default function LogoutButton() {
+//   const handleLogout = () => {
+//     localStorage.removeItem('userId');
+//     signOut({ callbackUrl: 'https://code-collab-gules.vercel.app/auth' });
+//   };
+
+
+//   return (
+//     <button
+//       onClick={handleLogout}
+//       className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+//     >
+//       Logout
+//     </button>
+//   );
+// }
+
 'use client';
 
 import { signOut } from 'next-auth/react';
@@ -5,14 +26,15 @@ import { signOut } from 'next-auth/react';
 export default function LogoutButton() {
   const handleLogout = () => {
     localStorage.removeItem('userId');
-    signOut({ callbackUrl: 'https://code-collab-gules.vercel.app/auth' });
+    localStorage.removeItem('token');
+    localStorage.removeItem('userName');
+    signOut({ callbackUrl: '/auth' });
   };
 
-  
   return (
     <button
       onClick={handleLogout}
-      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm"
     >
       Logout
     </button>
