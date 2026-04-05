@@ -172,12 +172,19 @@ import Editor from '@monaco-editor/react';
 import { debounce } from 'lodash';
 import { toast } from 'sonner';
 import { Socket } from 'socket.io-client';
-import { Play, Copy, Download, Minus, Plus, ChevronDown } from 'lucide-react';
+import { Play, Copy, Download, Minus, Plus, ChevronDown, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+
+import prettier from 'prettier/standalone';
+import parserBabel from 'prettier/plugins/babel';
+import parserEstree from 'prettier/plugins/estree';
+import parserTypescript from 'prettier/plugins/typescript';
+import parserCss from 'prettier/plugins/postcss';
+import parserHtml from 'prettier/plugins/html';
 
 const LANGUAGES = [
   'javascript', 'typescript', 'python', 'java',
@@ -314,6 +321,22 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
     URL.revokeObjectURL(url);
     toast.success(`Exported as code.${ext}`);
   };
+  const handleFormat = async () => {
+    try {
+      const plugins: any[] = [parserEstree];
+      let parser = 'babel';
+      if (language === 'typescript') { parser = 'typescript'; plugins.push(parserTypescript); }
+      else if (language === 'css') { parser = 'css'; plugins.push(parserCss); }
+      else if (language === 'html') { parser = 'html'; plugins.push(parserHtml); }
+      else { plugins.push(parserBabel); }
+      const formatted = await prettier.format(code, { parser, plugins, semi: true, singleQuote: true, tabWidth: 2 });
+      setCode(formatted);
+      socket.emit('code-change', { roomId, code: formatted });
+      toast.success('Code formatted!');
+    } catch {
+      toast.error('Could not format this code');
+    }
+  };
 
   const handleRun = async () => {
     setLoading(true);
@@ -413,6 +436,16 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
             </Button>
           </TooltipTrigger>
           <TooltipContent>Export file</TooltipContent>
+        </Tooltip>
+        {/* Format */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" onClick={handleFormat}
+              className="h-7 px-2 text-white/40 hover:text-white/70 hover:bg-white/5">
+              <Sparkles size={12} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Format code</TooltipContent>
         </Tooltip>
 
         <Separator orientation="vertical" className="h-4 bg-white/10" />
