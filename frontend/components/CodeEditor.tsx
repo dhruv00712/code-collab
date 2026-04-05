@@ -164,21 +164,20 @@
 //       </div>
 //     </div>
 //   );
-// }
-'use client';
+// }'use client';
 import { useSession } from 'next-auth/react';
 import { useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { debounce } from 'lodash';
 import { toast } from 'sonner';
 import { Socket } from 'socket.io-client';
-import { Play, Copy, Download, Minus, Plus, ChevronDown, Sparkles } from 'lucide-react';
+import { Play, Copy, Download, Minus, Plus, ChevronDown, Sparkles, X, FileCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-
+import { v4 as uuidv4 } from 'uuid';
 import prettier from 'prettier/standalone';
 import parserBabel from 'prettier/plugins/babel';
 import parserEstree from 'prettier/plugins/estree';
@@ -192,19 +191,27 @@ const LANGUAGES = [
 ];
 
 const CURSOR_COLORS = [
-  '#f87171', // red
-  '#fb923c', // orange  
-  '#facc15', // yellow
-  '#4ade80', // green
-  '#60a5fa', // blue
-  '#a78bfa', // purple
-  '#f472b6', // pink
+  '#f87171', '#fb923c', '#facc15',
+  '#4ade80', '#60a5fa', '#a78bfa', '#f472b6',
 ];
+
 const EXTENSIONS: Record<string, string> = {
   javascript: 'js', typescript: 'ts', python: 'py',
   java: 'java', cpp: 'cpp', html: 'html', css: 'css',
   go: 'go', ruby: 'rb', php: 'php', bash: 'sh', csharp: 'cs',
 };
+
+const LANG_MAP: Record<string, string> = {
+  js: 'javascript', ts: 'typescript', py: 'python',
+  java: 'java', cpp: 'cpp', html: 'html', css: 'css',
+  go: 'go', rb: 'ruby', php: 'php', sh: 'bash', cs: 'csharp'
+};
+
+interface IFile {
+  id: string;
+  name: string;
+  language: string;
+}
 
 interface CodeEditorProps {
   roomId: string;
@@ -213,6 +220,9 @@ interface CodeEditorProps {
 }
 
 export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
+  const { data: session } = useSession();
+
+  // Editor state
   const [language, setLanguage] = useState('javascript');
   const [code, setCode] = useState('// Start coding...');
   const [output, setOutput] = useState('');
@@ -221,28 +231,104 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const [fontSize, setFontSize] = useState(14);
   const [outputOpen, setOutputOpen] = useState(true);
+
+  // File tabs state
+  const [files, setFiles] = useState<IFile[]>([]);
+  const [activeFileId, setActiveFileId] = useState<string | null>(null);
+
+  // file code cache — stores code for each file locally
+  const fileCodeCache = useRef<Record<string, string>>({});
+
+  // Refs
   const skipNextUpdate = useRef(false);
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
-  const { data: session } = useSession();
+  const editorRef = useRef<any>(null);
+  const decorationsRef = useRef<any[]>([]);
+  const activeFileIdRef = useRef<string | null>(null);
 
+  // Keep ref in sync with state
+  useEffect(() => {
+    activeFileIdRef.current = activeFileId;
+  }, [activeFileId]);
+
+  const getUserColor = (userId: string) =>
+    CURSOR_COLORS[userId.charCodeAt(0) % CURSOR_COLORS.length];
 
   const debouncedEmitCode = useRef(
-    debounce((newCode: string) => {
-      socket.emit('code-change', { roomId, code: newCode });
+    debounce((newCode: string, fileId: string | null) => {
+      socket.emit('code-change', { roomId, code: newCode, fileId });
     }, 200)
   ).current;
 
-  const editorRef = useRef<any>(null);
-  const decorationsRef = useRef<any[]>([]);
-  const getUserColor = (userId: string) => CURSOR_COLORS[userId.charCodeAt(0) % CURSOR_COLORS.length];
-
+  // ─── Socket listeners ────────────────────────────────────────────────────
   useEffect(() => {
+    socket.on('load-room-data', ({ code: savedCode, language: savedLang, files: savedFiles }) => {
+      const loadedFiles: IFile[] = savedFiles || [];
+      setFiles(loadedFiles);
+      setCode(savedCode || '// Start coding...');
+      setLanguage(savedLang || 'javascript');
+      setActiveFileId(null);
+      fileCodeCache.current = {};
+    });
+
+    socket.on('code-change', ({ code: newCode, fileId }) => {
+      if (fileId) {
+        // Update cache for that file
+        fileCodeCache.current[fileId] = newCode;
+        // Only update editor if it's the active file
+        if (fileId === activeFileIdRef.current) {
+          skipNextUpdate.current = true;
+          setCode(newCode);
+        }
+      } else {
+        skipNextUpdate.current = true;
+        setCode(newCode);
+      }
+    });
+
+    socket.on('file-added', ({ file }: { file: IFile }) => {
+      setFiles(prev => {
+        if (prev.find(f => f.id === file.id)) return prev;
+        return [...prev, file];
+      });
+      fileCodeCache.current[file.id] = '';
+    });
+
+    socket.on('file-deleted', ({ fileId }: { fileId: string }) => {
+      setFiles(prev => prev.filter(f => f.id !== fileId));
+      delete fileCodeCache.current[fileId];
+      if (activeFileIdRef.current === fileId) {
+        setActiveFileId(null);
+        setCode('// Start coding...');
+      }
+    });
+
+    socket.on('file-code', ({ fileId, code: fileCode }: { fileId: string; code: string }) => {
+      fileCodeCache.current[fileId] = fileCode || '';
+      if (fileId === activeFileIdRef.current) {
+        skipNextUpdate.current = true;
+        setCode(fileCode || '// Start coding...');
+      }
+    });
+
+    socket.on('user-typing', ({ user }: { user: string }) => {
+      setTypingUser(user);
+      if (typingTimeout.current) clearTimeout(typingTimeout.current);
+      typingTimeout.current = setTimeout(() => setTypingUser(null), 2000);
+    });
+
+    socket.on('language-change', ({ language: newLang }: { language: string }) => {
+      setLanguage(newLang);
+      toast.info(`Language: ${newLang}`);
+    });
 
     socket.on('cursor-update', ({ userId, userName, position, color }) => {
       if (!editorRef.current) return;
-      console.log('cursor received:', userName, position);
       const newDecorations = editorRef.current.deltaDecorations(decorationsRef.current, [{
-        range: new (window as any).monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column + 1),
+        range: new (window as any).monaco.Range(
+          position.lineNumber, position.column,
+          position.lineNumber, position.column + 1
+        ),
         options: {
           className: `cursor-${userId}`,
           afterContentClassName: `cursor-label-${userId}`,
@@ -250,53 +336,44 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
         }
       }]);
       decorationsRef.current = newDecorations;
-
-      // inject CSS for this cursor color
       const styleId = `cursor-style-${userId}`;
       if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
         style.id = styleId;
         style.textContent = `
-      .cursor-${userId} { border-left: 2px solid ${color}; }
-      .cursor-label-${userId}::after { content: '${userName}'; background: ${color}; color: #000; font-size: 10px; padding: 0 4px; border-radius: 2px; }
-    `;
+          .cursor-${userId} { border-left: 2px solid ${color}; }
+          .cursor-label-${userId}::after { content: '${userName}'; background: ${color}; color: #000; font-size: 10px; padding: 0 4px; border-radius: 2px; }
+        `;
         document.head.appendChild(style);
       }
     });
-    socket.on('code-change', ({ code: newCode }) => {
-      skipNextUpdate.current = true;
-      setCode(newCode);
-    });
-    socket.on('load-room-data', ({ code: savedCode, language: savedLang }) => {
-      setCode(savedCode || '// Start coding...');
-      setLanguage(savedLang || 'javascript');
-    });
-    socket.on('user-typing', ({ user }: { user: string }) => {
-      setTypingUser(user);
-      if (typingTimeout.current) clearTimeout(typingTimeout.current);
-      typingTimeout.current = setTimeout(() => setTypingUser(null), 2000);
-    });
-    socket.on('language-change', ({ language: newLang }: { language: string }) => {
-      setLanguage(newLang);
-      toast.info(`Language: ${newLang}`);
-    });
+
     return () => {
-      socket.off('code-change');
       socket.off('load-room-data');
+      socket.off('code-change');
+      socket.off('file-added');
+      socket.off('file-deleted');
+      socket.off('file-code');
       socket.off('user-typing');
       socket.off('language-change');
       socket.off('cursor-update');
     };
   }, [socket]);
 
+  // ─── Handlers ────────────────────────────────────────────────────────────
   const handleCodeChange = (value: string | undefined) => {
     if (value === undefined) return;
     setCode(value);
+
+    // Update local cache
+    if (activeFileIdRef.current) {
+      fileCodeCache.current[activeFileIdRef.current] = value;
+    }
+
     if (skipNextUpdate.current) { skipNextUpdate.current = false; return; }
-    debouncedEmitCode(value);
-    const userName = localStorage.getItem('userName')
-      || session?.user?.name
-      || 'User';
+    debouncedEmitCode(value, activeFileIdRef.current);
+
+    const userName = localStorage.getItem('userName') || session?.user?.name || 'User';
     socket.emit('typing', { roomId, user: userName });
   };
 
@@ -316,11 +393,14 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `code.${ext}`;
+    a.download = activeFileId
+      ? (files.find(f => f.id === activeFileId)?.name || `code.${ext}`)
+      : `code.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`Exported as code.${ext}`);
+    toast.success('Exported!');
   };
+
   const handleFormat = async () => {
     try {
       const plugins: any[] = [parserEstree];
@@ -331,33 +411,143 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
       else { plugins.push(parserBabel); }
       const formatted = await prettier.format(code, { parser, plugins, semi: true, singleQuote: true, tabWidth: 2 });
       setCode(formatted);
-      socket.emit('code-change', { roomId, code: formatted });
-      toast.success('Code formatted!');
+      socket.emit('code-change', { roomId, code: formatted, fileId: activeFileId });
+      toast.success('Formatted!');
     } catch {
       toast.error('Could not format this code');
     }
   };
 
+  const handleAddFile = () => {
+    const name = prompt('File name (e.g. index.html):');
+    if (!name?.trim()) return;
+    const ext = name.split('.').pop() || 'js';
+    const fileLang = LANG_MAP[ext] || 'javascript';
+    const file: IFile = { id: uuidv4(), name: name.trim(), language: fileLang };
+    fileCodeCache.current[file.id] = '';
+    socket.emit('add-file', { roomId, file });
+    // switch to new file immediately
+    setActiveFileId(file.id);
+    setLanguage(fileLang);
+    setCode('');
+  };
+
+  const handleSwitchFile = (fileId: string, fileLang: string) => {
+    // Save current file to cache before switching
+    if (activeFileIdRef.current) {
+      fileCodeCache.current[activeFileIdRef.current] = code;
+      // Emit save for current file
+      socket.emit('code-change', {
+        roomId,
+        code,
+        fileId: activeFileIdRef.current
+      });
+    }
+
+    setActiveFileId(fileId);
+    setLanguage(fileLang);
+
+    // Load from cache first
+    const cached = fileCodeCache.current[fileId];
+    if (cached !== undefined) {
+      setCode(cached || '// Start coding...');
+    } else {
+      // Fetch from server
+      setCode('// Loading...');
+      socket.emit('switch-file', { roomId, fileId });
+    }
+  };
+
+  const handleDeleteFile = (fileId: string) => {
+    if (!confirm('Delete this file?')) return;
+    socket.emit('delete-file', { roomId, fileId });
+  };
+
+  // ─── Smart HTML Run — combines all files ─────────────────────────────────
   const handleRun = async () => {
     setLoading(true);
     setOutput('');
     setOutputError(false);
     setOutputOpen(true);
 
-    if (language === 'html' || language === 'css') {
-      const content = language === 'html' ? code : `<style>${code}</style>`;
+    // Save current file to cache
+    if (activeFileIdRef.current) {
+      fileCodeCache.current[activeFileIdRef.current] = code;
+    }
+
+    const activeFile = files.find(f => f.id === activeFileId);
+    const isHtmlRun = language === 'html' || activeFile?.language === 'html';
+    const isCssRun = language === 'css' && !isHtmlRun;
+
+    if (isHtmlRun || isCssRun) {
+      let htmlContent = '';
+
+      if (files.length > 0) {
+        // Find HTML file
+        const htmlFile = files.find(f => f.language === 'html');
+        const cssFiles = files.filter(f => f.language === 'css');
+        const jsFiles = files.filter(f => f.language === 'javascript' || f.language === 'typescript');
+
+        if (htmlFile) {
+          htmlContent = fileCodeCache.current[htmlFile.id] || '';
+
+          // Inject CSS files
+          let cssContent = '';
+          cssFiles.forEach(f => {
+            cssContent += fileCodeCache.current[f.id] || '';
+          });
+          if (cssContent) {
+            htmlContent = htmlContent.replace('</head>', `<style>${cssContent}</style></head>`);
+            if (!htmlContent.includes('</head>')) {
+              htmlContent = `<style>${cssContent}</style>` + htmlContent;
+            }
+          }
+
+          // Inject JS files
+          let jsContent = '';
+          jsFiles.forEach(f => {
+            jsContent += fileCodeCache.current[f.id] || '';
+          });
+          if (jsContent) {
+            htmlContent = htmlContent.replace('</body>', `<script>${jsContent}</script></body>`);
+            if (!htmlContent.includes('</body>')) {
+              htmlContent += `<script>${jsContent}</script>`;
+            }
+          }
+        } else {
+          // No HTML file — just wrap current code
+          htmlContent = language === 'css'
+            ? `<style>${code}</style><div>CSS Preview</div>`
+            : code;
+        }
+      } else {
+        htmlContent = language === 'css'
+          ? `<style>${code}</style><div>CSS Preview</div>`
+          : code;
+      }
+
       const w = window.open('', '_blank');
-      if (w) { w.document.write(content); w.document.close(); setOutput('Opened in new tab.'); }
-      else { setOutput('Popup blocked.'); setOutputError(true); }
+      if (w) {
+        w.document.write(htmlContent);
+        w.document.close();
+        setOutput('Opened in new tab with all files combined.');
+      } else {
+        setOutput('Popup blocked.');
+        setOutputError(true);
+      }
       setLoading(false);
       return;
     }
 
+    // Regular code execution
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/run`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ code, language }),
       });
 
@@ -387,13 +577,11 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
 
       {/* Toolbar */}
       <div className="h-10 bg-[#111111] border-b border-white/[0.06] flex items-center gap-2 px-3 shrink-0">
-
-        {/* Language selector */}
         <div className="relative flex items-center">
           <select
             value={language}
             onChange={(e) => handleLanguageChange(e.target.value)}
-            className="appearance-none bg-white/5 hover:bg-white/8 text-white/70 text-xs border border-white/10 rounded px-2.5 py-1 pr-6 focus:outline-none focus:ring-1 focus:ring-white/20 cursor-pointer font-mono"
+            className="appearance-none bg-white/5 text-white/70 text-xs border border-white/10 rounded px-2.5 py-1 pr-6 focus:outline-none focus:ring-1 focus:ring-white/20 cursor-pointer font-mono"
           >
             {LANGUAGES.map(l => <option key={l} value={l} className="bg-[#1a1a1a]">{l}</option>)}
           </select>
@@ -402,7 +590,6 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
 
         <Separator orientation="vertical" className="h-4 bg-white/10" />
 
-        {/* Run */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button onClick={handleRun} disabled={loading} size="sm"
@@ -416,7 +603,6 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
 
         <Separator orientation="vertical" className="h-4 bg-white/10" />
 
-        {/* Copy */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="sm" onClick={handleCopy}
@@ -427,7 +613,6 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
           <TooltipContent>Copy code</TooltipContent>
         </Tooltip>
 
-        {/* Export */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="sm" onClick={handleExport}
@@ -437,7 +622,7 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
           </TooltipTrigger>
           <TooltipContent>Export file</TooltipContent>
         </Tooltip>
-        {/* Format */}
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="sm" onClick={handleFormat}
@@ -450,7 +635,6 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
 
         <Separator orientation="vertical" className="h-4 bg-white/10" />
 
-        {/* Font size */}
         <div className="flex items-center gap-1">
           <button onClick={() => setFontSize(s => Math.max(10, s - 1))}
             className="w-5 h-5 flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/5 rounded transition-colors">
@@ -463,7 +647,6 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
           </button>
         </div>
 
-        {/* Typing indicator */}
         {typingUser && (
           <span className="ml-auto text-[11px] text-white/30 animate-pulse font-mono">
             {typingUser} is typing...
@@ -471,12 +654,43 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
         )}
       </div>
 
+      {/* File Tabs */}
+      <div className="flex items-center bg-[#0a0a0a] border-b border-white/[0.06] overflow-x-auto shrink-0">
+        {files.map(file => (
+          <div key={file.id}
+            onClick={() => handleSwitchFile(file.id, file.language)}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 text-xs cursor-pointer border-r border-white/[0.06] shrink-0 group transition-colors',
+              activeFileId === file.id
+                ? 'bg-[#1a1a1a] text-white/80 border-t border-t-indigo-500'
+                : 'text-white/30 hover:text-white/50 hover:bg-white/[0.03]'
+            )}>
+            <FileCode size={11} />
+            <span className="font-mono">{file.name}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.id); }}
+              className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all ml-1">
+              <X size={10} />
+            </button>
+          </div>
+        ))}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleAddFile}
+              className="px-3 py-1.5 text-white/20 hover:text-white/50 hover:bg-white/[0.03] transition-colors shrink-0">
+              <Plus size={12} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Add file</TooltipContent>
+        </Tooltip>
+      </div>
+
       {/* Editor */}
       <div
         className="flex-1 overflow-hidden"
         onMouseMove={() => {
           const position = editorRef.current?.getPosition();
-          console.log('cursor position:', position);
           if (!position) return;
           const userId = localStorage.getItem('userId') || 'anon';
           const userName = localStorage.getItem('userName') || session?.user?.name || 'User';
@@ -518,7 +732,6 @@ export default function CodeEditor({ roomId, socket }: CodeEditorProps) {
           OUTPUT
           {outputError && <span className="text-red-400/60 ml-auto">error</span>}
         </button>
-
         {outputOpen && (
           <ScrollArea className="h-28 px-3 pb-2">
             <pre className={cn(
