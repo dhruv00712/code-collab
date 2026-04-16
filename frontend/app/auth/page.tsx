@@ -162,7 +162,7 @@ export default function AuthPage() {
       <div className="fixed top-0 inset-x-0 z-50 h-14 flex items-center px-6 border-b border-white/[0.05] bg-[#060608]/60 backdrop-blur-xl">
         <Link href="/" className="text-sm font-bold">
           <span className="text-white">Code</span>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Collab</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Ship</span>
         </Link>
       </div>
 

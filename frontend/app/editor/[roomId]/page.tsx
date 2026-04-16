@@ -153,7 +153,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             {/* Logo */}
             <span className="text-sm font-bold tracking-tight flex-shrink-0">
               <span className="text-white">Code</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Collab</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Ship</span>
             </span>
             <Separator orientation="vertical" className="h-4 bg-white/10 flex-shrink-0" />
 

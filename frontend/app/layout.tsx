@@ -70,7 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <header className="h-14 border-b border-white/[0.06] bg-[#0d0d0d]/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-50">
               <span className="text-sm font-bold tracking-tight">
                 <span className="text-white">Code</span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Collab</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Ship</span>
               </span>
               <LogoutButton />
             </header>

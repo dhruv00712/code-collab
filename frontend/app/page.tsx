@@ -50,9 +50,9 @@ function MeshBackground() {
 
 // ─── Animated Code Demo ───────────────────────────────────────────────────────
 const DEMO_LINES = [
-  { t: 'import { createRoom } from "@codecollab/sdk";', c: '#c792ea' },
+  { t: 'import { createRoom } from "@codeship/sdk";', c: '#c792ea' },
   { t: '', c: '' },
-  { t: 'const room = await createRoom({', c: '#82aaff' },
+  { t: 'const room = await CodeShip.create({', c: '#c792ea' },
   { t: '  language: "typescript",', c: '#c3e88d' },
   { t: '  name: "my-project",', c: '#c3e88d' },
   { t: '});', c: '#82aaff' },
@@ -236,7 +236,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="text-lg font-bold">
             <span className="text-white">Code</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Collab</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Ship</span>
           </div>
           <div className="hidden sm:flex items-center gap-8 text-sm text-white/50">
             {['Features', 'How it works', 'Languages'].map(l => (
