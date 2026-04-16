@@ -246,8 +246,8 @@ setInterval(async () => {
       if (code) {
         await Room.findOneAndUpdate(
           { roomId },
-          { code, lastActivity: new Date() },
-          { upsert: true }
+          { $set: { code } },          // only persist code — do NOT touch lastActivity or updatedAt
+          { upsert: true, timestamps: false }  // timestamps:false prevents Mongoose from bumping updatedAt
         );
       }
     }

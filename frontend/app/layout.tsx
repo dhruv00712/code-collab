@@ -54,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const isPublicPage = pathname === '/' || pathname.startsWith('/auth');
   const isEditorPage = pathname.startsWith('/editor');
+  const isHomePage = pathname === '/home';
 
   return (
     <html lang="en" className={cn(geist.variable, geistMono.variable)}>
@@ -66,8 +67,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SessionTracker />
 
           {!isPublicPage && !isEditorPage && (
-            <header className="h-14 border-b border-white/10 bg-[#0d0d0d] flex items-center justify-between px-6">
-              <span className="text-sm font-semibold tracking-tight text-white">CodeCollab</span>
+            <header className="h-14 border-b border-white/[0.06] bg-[#0d0d0d]/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-50">
+              <span className="text-sm font-bold tracking-tight">
+                <span className="text-white">Code</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Collab</span>
+              </span>
               <LogoutButton />
             </header>
           )}
@@ -75,9 +79,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className={cn(
             isEditorPage
               ? 'h-screen flex flex-col overflow-hidden'
-              : !isPublicPage
-                ? 'min-h-[calc(100vh-56px)] p-6'
-                : ''
+              : isHomePage
+                ? 'min-h-[calc(100vh-56px)]'   // home page owns its own padding
+                : !isPublicPage
+                  ? 'min-h-[calc(100vh-56px)] p-6'
+                  : ''
           )}>
             {children}
           </main>

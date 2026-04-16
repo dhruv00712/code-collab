@@ -38,7 +38,7 @@ router.get('/:userId', authenticateToken, async (req: AuthenticatedRequest, res)
   try {
     const rooms = await Room.find({ participants: userId })
       .sort({ updatedAt: -1 })
-      .select('roomId language lastActivity updatedAt createdBy files') // include createdBy + files
+      .select('roomId language lastActivity updatedAt createdAt createdBy files') // include createdAt as stable fallback
       .limit(50);
 
     res.json(rooms);
