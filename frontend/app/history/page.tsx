@@ -10,6 +10,7 @@ type RoomEntry = {
   language: string;
   lastActivity: string;
   updatedAt: string;
+  createdBy?: string;
   files?: { id: string; name: string; language: string }[];
   participants?: string[];
 };
@@ -69,32 +70,78 @@ function formatFullDate(dateStr: string): string {
   });
 }
 
-/** Poll localStorage for token+userId, resolving once both are present or timeout */
 function waitForAuthCredentials(
   timeoutMs = 8000,
   intervalMs = 300
 ): Promise<{ token: string; userId: string } | null> {
   return new Promise((resolve) => {
     const start = Date.now();
-
     const check = () => {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('userId');
-      if (token && userId) {
-        resolve({ token, userId });
-        return;
-      }
-      if (Date.now() - start >= timeoutMs) {
-        resolve(null);
-        return;
-      }
+      if (token && userId) { resolve({ token, userId }); return; }
+      if (Date.now() - start >= timeoutMs) { resolve(null); return; }
       setTimeout(check, intervalMs);
     };
-
     check();
   });
 }
 
+// ── Confirm Dialog ────────────────────────────────────────────────────────────
+function ConfirmDialog({
+  isCreator,
+  roomId,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  isCreator: boolean;
+  roomId: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <div className="bg-[#1a1a1a] border border-white/15 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+        <div className="text-3xl mb-3">{isCreator ? '🗑️' : '🚪'}</div>
+        <h2 className="text-lg font-semibold text-white mb-1">
+          {isCreator ? 'Delete Room?' : 'Leave Room?'}
+        </h2>
+        <p className="text-sm text-white/50 mb-5">
+          {isCreator
+            ? <>You created this room. Deleting it will <span className="text-red-400 font-medium">permanently remove</span> it for everyone.</>
+            : <>You&apos;ll be removed from <span className="font-mono text-white/70 text-xs">{roomId}</span>. The room will still exist for its creator.</>
+          }
+        </p>
+        <div className="flex gap-2">
+          <button
+            id="confirm-cancel-btn"
+            onClick={onCancel}
+            disabled={loading}
+            className="flex-1 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-sm transition disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            id="confirm-action-btn"
+            onClick={onConfirm}
+            disabled={loading}
+            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 flex items-center justify-center gap-2 ${isCreator
+              ? 'bg-red-600 hover:bg-red-700 text-white'
+              : 'bg-orange-600 hover:bg-orange-700 text-white'
+              }`}
+          >
+            {loading && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+            {isCreator ? 'Delete Room' : 'Leave Room'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function HistoryPage() {
   const [rooms, setRooms] = useState<RoomEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,6 +150,11 @@ export default function HistoryPage() {
   const [filterLang, setFilterLang] = useState('all');
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'language'>('recent');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Delete/leave confirm state
+  const [confirmRoom, setConfirmRoom] = useState<RoomEntry | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const router = useRouter();
   const { status: sessionStatus } = useSession();
@@ -111,9 +163,7 @@ export default function HistoryPage() {
     setLoading(true);
     setError(null);
 
-    // Wait for SessionTracker to finish writing token + userId to localStorage
     const creds = await waitForAuthCredentials();
-
     if (!creds) {
       setError('Not authenticated. Please log in again.');
       setLoading(false);
@@ -121,19 +171,15 @@ export default function HistoryPage() {
     }
 
     const { token, userId } = creds;
+    setCurrentUserId(userId);
 
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (!res.ok) {
-        // If token is stale/expired, clear it so user re-authenticates next visit
         if (res.status === 401 || res.status === 403) {
           localStorage.removeItem('token');
           setError('Session expired. Please log out and log back in.');
@@ -155,10 +201,41 @@ export default function HistoryPage() {
   }, []);
 
   useEffect(() => {
-    // Only start fetching once we know the NextAuth session is settled
     if (sessionStatus === 'loading') return;
     fetchRooms();
   }, [sessionStatus, fetchRooms]);
+
+  // ── Delete / Leave ──────────────────────────────────────────────────────────
+  const handleDeleteOrLeave = async () => {
+    if (!confirmRoom) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${confirmRoom.roomId}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error('Delete/leave failed:', body.message);
+        return;
+      }
+
+      // Remove from local list
+      setRooms((prev) => prev.filter((r) => r.roomId !== confirmRoom.roomId));
+    } catch (err) {
+      console.error('Delete/leave error:', err);
+    } finally {
+      setDeleteLoading(false);
+      setConfirmRoom(null);
+    }
+  };
 
   const uniqueLanguages = useMemo(() => {
     return [...new Set(rooms.map((r) => r.language).filter(Boolean))].sort();
@@ -166,36 +243,20 @@ export default function HistoryPage() {
 
   const filteredRooms = useMemo(() => {
     let result = [...rooms];
-
-    if (filterLang !== 'all') {
-      result = result.filter((r) => r.language === filterLang);
-    }
-
+    if (filterLang !== 'all') result = result.filter((r) => r.language === filterLang);
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
-        (r) =>
-          r.roomId.toLowerCase().includes(q) ||
-          r.language?.toLowerCase().includes(q)
+        (r) => r.roomId.toLowerCase().includes(q) || r.language?.toLowerCase().includes(q)
       );
     }
-
     if (sortBy === 'recent') {
-      result.sort(
-        (a, b) =>
-          new Date(b.lastActivity || b.updatedAt).getTime() -
-          new Date(a.lastActivity || a.updatedAt).getTime()
-      );
+      result.sort((a, b) => new Date(b.lastActivity || b.updatedAt).getTime() - new Date(a.lastActivity || a.updatedAt).getTime());
     } else if (sortBy === 'oldest') {
-      result.sort(
-        (a, b) =>
-          new Date(a.lastActivity || a.updatedAt).getTime() -
-          new Date(b.lastActivity || b.updatedAt).getTime()
-      );
-    } else if (sortBy === 'language') {
+      result.sort((a, b) => new Date(a.lastActivity || a.updatedAt).getTime() - new Date(b.lastActivity || b.updatedAt).getTime());
+    } else {
       result.sort((a, b) => (a.language || '').localeCompare(b.language || ''));
     }
-
     return result;
   }, [rooms, search, filterLang, sortBy]);
 
@@ -207,12 +268,19 @@ export default function HistoryPage() {
     });
   };
 
-  const openRoom = (roomId: string) => {
-    router.push(`/editor/${roomId}`);
-  };
-
   return (
     <div className="min-h-screen bg-[#0d0d0d] text-white">
+      {/* Confirm dialog */}
+      {confirmRoom && (
+        <ConfirmDialog
+          isCreator={confirmRoom.createdBy === currentUserId}
+          roomId={confirmRoom.roomId}
+          onConfirm={handleDeleteOrLeave}
+          onCancel={() => setConfirmRoom(null)}
+          loading={deleteLoading}
+        />
+      )}
+
       {/* Header */}
       <div className="border-b border-white/10 bg-[#111] px-6 py-5">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 flex-wrap">
@@ -247,7 +315,7 @@ export default function HistoryPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 py-6 space-y-5">
-        {/* Filters Row */}
+        {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm">🔍</span>
@@ -260,7 +328,6 @@ export default function HistoryPage() {
               className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition"
             />
           </div>
-
           <select
             id="language-filter-select"
             value={filterLang}
@@ -274,7 +341,6 @@ export default function HistoryPage() {
               </option>
             ))}
           </select>
-
           <select
             id="sort-select"
             value={sortBy}
@@ -298,29 +364,15 @@ export default function HistoryPage() {
             <span className="text-4xl">⚠️</span>
             <p className="text-red-400 text-sm font-medium max-w-sm">{error}</p>
             <div className="flex gap-2 mt-2">
-              <button
-                id="retry-btn"
-                onClick={fetchRooms}
-                className="px-4 py-2 bg-white/10 hover:bg-white/15 rounded-lg text-sm transition"
-              >
-                ↺ Retry
-              </button>
-              <button
-                id="go-home-error-btn"
-                onClick={() => router.push('/home')}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition"
-              >
-                ← Go Home
-              </button>
+              <button id="retry-btn" onClick={fetchRooms} className="px-4 py-2 bg-white/10 hover:bg-white/15 rounded-lg text-sm transition">↺ Retry</button>
+              <button id="go-home-error-btn" onClick={() => router.push('/home')} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition">← Go Home</button>
             </div>
           </div>
         ) : filteredRooms.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
             <span className="text-5xl">📂</span>
             <p className="text-white/60 font-medium">
-              {rooms.length === 0
-                ? 'No rooms yet. Create or join one to get started!'
-                : 'No rooms match your filters.'}
+              {rooms.length === 0 ? 'No rooms yet. Create or join one to get started!' : 'No rooms match your filters.'}
             </p>
             {rooms.length === 0 && (
               <button
@@ -340,12 +392,13 @@ export default function HistoryPage() {
               const color = LANGUAGE_COLORS[lang] || '#888';
               const activityDate = room.lastActivity || room.updatedAt;
               const fileCount = room.files?.length ?? 0;
+              const isCreator = room.createdBy === currentUserId;
 
               return (
                 <li
                   key={room._id || room.roomId}
                   id={`room-card-${room.roomId}`}
-                  onClick={() => openRoom(room.roomId)}
+                  onClick={() => router.push(`/editor/${room.roomId}`)}
                   className="group relative bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-white/25 rounded-xl p-4 cursor-pointer transition-all duration-200 hover:shadow-lg hover:shadow-black/30 hover:-translate-y-0.5"
                 >
                   {/* Language accent bar */}
@@ -355,6 +408,7 @@ export default function HistoryPage() {
                   />
 
                   <div className="flex items-start justify-between gap-3">
+                    {/* Left: icon + info */}
                     <div className="flex items-start gap-3 min-w-0 flex-1">
                       <div
                         className="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0 mt-0.5"
@@ -367,23 +421,22 @@ export default function HistoryPage() {
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span
                             className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                            style={{
-                              backgroundColor: color + '20',
-                              color: color,
-                              border: `1px solid ${color}40`,
-                            }}
+                            style={{ backgroundColor: color + '20', color, border: `1px solid ${color}40` }}
                           >
                             {lang.charAt(0).toUpperCase() + lang.slice(1)}
                           </span>
-                          {fileCount > 0 && (
-                            <span className="text-xs text-white/40">
-                              📁 {fileCount} file{fileCount !== 1 ? 's' : ''}
+                          {isCreator && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20 font-medium">
+                              👑 Owner
                             </span>
+                          )}
+                          {fileCount > 0 && (
+                            <span className="text-xs text-white/40">📁 {fileCount} file{fileCount !== 1 ? 's' : ''}</span>
                           )}
                         </div>
 
                         <div className="flex items-center gap-1.5 group/id">
-                          <code className="text-xs text-white/55 font-mono truncate max-w-[180px] sm:max-w-[220px]">
+                          <code className="text-xs text-white/55 font-mono truncate max-w-[180px] sm:max-w-[200px]">
                             {room.roomId}
                           </code>
                           <button
@@ -402,8 +455,18 @@ export default function HistoryPage() {
                       </div>
                     </div>
 
-                    <div className="text-white/20 group-hover:text-white/60 transition text-lg flex-shrink-0 mt-1">
-                      →
+                    {/* Right: delete/leave + arrow */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        id={`delete-btn-${room.roomId}`}
+                        onClick={(e) => { e.stopPropagation(); setConfirmRoom(room); }}
+                        title={isCreator ? 'Delete room' : 'Leave room'}
+                        className={`opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-sm hover:bg-white/10 ${isCreator ? 'text-red-400 hover:text-red-300' : 'text-orange-400 hover:text-orange-300'
+                          }`}
+                      >
+                        {isCreator ? '🗑️' : '🚪'}
+                      </button>
+                      <div className="text-white/20 group-hover:text-white/60 transition text-lg">→</div>
                     </div>
                   </div>
                 </li>
@@ -415,12 +478,8 @@ export default function HistoryPage() {
         {/* Stats footer */}
         {!loading && !error && rooms.length > 0 && (
           <div className="pt-4 border-t border-white/5 flex items-center justify-between text-xs text-white/25">
-            <span>
-              Showing {filteredRooms.length} of {rooms.length} rooms
-            </span>
-            <span>
-              {uniqueLanguages.length} language{uniqueLanguages.length !== 1 ? 's' : ''} used
-            </span>
+            <span>Showing {filteredRooms.length} of {rooms.length} rooms</span>
+            <span>{uniqueLanguages.length} language{uniqueLanguages.length !== 1 ? 's' : ''} used</span>
           </div>
         )}
       </div>

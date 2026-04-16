@@ -22,6 +22,7 @@ export interface IRoom extends Document {
   code: string;
   language: string;
   participants: string[];
+  createdBy: string; // userId of the room creator
   lastActivity: Date;
   files: IFile[];
 }
@@ -43,6 +44,7 @@ const roomSchema = new Schema<IRoom>({
   code: { type: String, default: '' },
   language: { type: String, default: 'javascript' },
   participants: { type: [String], default: [] },
+  createdBy: { type: String, default: '' }, // userId of creator
   lastActivity: { type: Date, default: Date.now },
   files: { type: [fileSchema], default: [] },
 }, { timestamps: true });

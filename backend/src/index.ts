@@ -330,6 +330,7 @@ io.on('connection', (socket) => {
         room = await Room.create({
           roomId,
           participants: [userId],
+          createdBy: userId, // first joiner is creator
           code: '',
           language: 'javascript',
         });

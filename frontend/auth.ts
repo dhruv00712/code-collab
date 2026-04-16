@@ -64,7 +64,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
             return session;
         },
-        async redirect({ baseUrl }) {
+        async redirect({ url, baseUrl }) {
+            // Always land on /home after sign-in.
+            // Sign-out redirect is handled client-side (redirect: false + router.push).
+            if (url.startsWith(baseUrl)) return `${baseUrl}/home`;
+            if (url.startsWith('/')) return `${baseUrl}${url}`;
             return `${baseUrl}/home`;
         },
     },
