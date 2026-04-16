@@ -14,6 +14,6 @@ export const metadata: Metadata = {
     type: 'website',
   },
   icons: {
-    icon: '/favicon.ico',
+    icon: '/CodeShip_favicon.png',
   },
 };
