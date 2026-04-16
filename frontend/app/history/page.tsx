@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
@@ -52,7 +52,6 @@ function timeAgo(dateStr: string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
   const diff = Math.floor((now - then) / 1000);
-
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
@@ -70,6 +69,32 @@ function formatFullDate(dateStr: string): string {
   });
 }
 
+/** Poll localStorage for token+userId, resolving once both are present or timeout */
+function waitForAuthCredentials(
+  timeoutMs = 8000,
+  intervalMs = 300
+): Promise<{ token: string; userId: string } | null> {
+  return new Promise((resolve) => {
+    const start = Date.now();
+
+    const check = () => {
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      if (token && userId) {
+        resolve({ token, userId });
+        return;
+      }
+      if (Date.now() - start >= timeoutMs) {
+        resolve(null);
+        return;
+      }
+      setTimeout(check, intervalMs);
+    };
+
+    check();
+  });
+}
+
 export default function HistoryPage() {
   const [rooms, setRooms] = useState<RoomEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,43 +105,63 @@ export default function HistoryPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const router = useRouter();
-  const { data: session } = useSession();
+  const { status: sessionStatus } = useSession();
 
-  useEffect(() => {
-    const userId =
-      typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    const token =
-      typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const fetchRooms = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-    if (!userId || !token) {
-      setError('You must be logged in to view history.');
+    // Wait for SessionTracker to finish writing token + userId to localStorage
+    const creds = await waitForAuthCredentials();
+
+    if (!creds) {
+      setError('Not authenticated. Please log in again.');
       setLoading(false);
       return;
     }
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${userId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
-        return res.json();
-      })
-      .then((data: RoomEntry[]) => {
-        setRooms(Array.isArray(data) ? data : []);
+    const { token, userId } = creds;
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        // If token is stale/expired, clear it so user re-authenticates next visit
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('token');
+          setError('Session expired. Please log out and log back in.');
+        } else {
+          setError(`Failed to load history (${res.status}).`);
+        }
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Error loading history:', err);
-        setError('Failed to load room history. Please try again.');
-        setLoading(false);
-      });
-  }, [session]);
+        return;
+      }
+
+      const data: RoomEntry[] = await res.json();
+      setRooms(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error loading history:', err);
+      setError('Network error. Check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Only start fetching once we know the NextAuth session is settled
+    if (sessionStatus === 'loading') return;
+    fetchRooms();
+  }, [sessionStatus, fetchRooms]);
 
   const uniqueLanguages = useMemo(() => {
-    const langs = [...new Set(rooms.map((r) => r.language).filter(Boolean))];
-    return langs.sort();
+    return [...new Set(rooms.map((r) => r.language).filter(Boolean))].sort();
   }, [rooms]);
 
   const filteredRooms = useMemo(() => {
@@ -176,23 +221,34 @@ export default function HistoryPage() {
               <span className="text-blue-400">⏱</span> Room History
             </h1>
             <p className="text-sm text-white/40 mt-0.5">
-              {rooms.length} room{rooms.length !== 1 ? 's' : ''} found
+              {loading ? 'Loading…' : `${rooms.length} room${rooms.length !== 1 ? 's' : ''} found`}
             </p>
           </div>
-          <button
-            id="back-to-home-btn"
-            onClick={() => router.push('/home')}
-            className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition px-4 py-2 rounded-lg border border-white/10 hover:border-white/30 bg-white/5"
-          >
-            ← Back to Home
-          </button>
+          <div className="flex items-center gap-2">
+            {!loading && !error && (
+              <button
+                id="refresh-btn"
+                onClick={fetchRooms}
+                title="Refresh"
+                className="text-white/40 hover:text-white transition px-3 py-2 rounded-lg border border-white/10 hover:border-white/30 bg-white/5 text-sm"
+              >
+                ↺ Refresh
+              </button>
+            )}
+            <button
+              id="back-to-home-btn"
+              onClick={() => router.push('/home')}
+              className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition px-4 py-2 rounded-lg border border-white/10 hover:border-white/30 bg-white/5"
+            >
+              ← Back to Home
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-6 py-6 space-y-5">
         {/* Filters Row */}
         <div className="flex flex-col sm:flex-row gap-3">
-          {/* Search */}
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm">🔍</span>
             <input
@@ -205,7 +261,6 @@ export default function HistoryPage() {
             />
           </div>
 
-          {/* Language filter */}
           <select
             id="language-filter-select"
             value={filterLang}
@@ -220,7 +275,6 @@ export default function HistoryPage() {
             ))}
           </select>
 
-          {/* Sort */}
           <select
             id="sort-select"
             value={sortBy}
@@ -240,15 +294,25 @@ export default function HistoryPage() {
             <p className="text-white/40 text-sm">Loading your rooms…</p>
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-3">
+          <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
             <span className="text-4xl">⚠️</span>
-            <p className="text-red-400 text-sm font-medium">{error}</p>
-            <button
-              onClick={() => router.push('/auth')}
-              className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition"
-            >
-              Go to Login
-            </button>
+            <p className="text-red-400 text-sm font-medium max-w-sm">{error}</p>
+            <div className="flex gap-2 mt-2">
+              <button
+                id="retry-btn"
+                onClick={fetchRooms}
+                className="px-4 py-2 bg-white/10 hover:bg-white/15 rounded-lg text-sm transition"
+              >
+                ↺ Retry
+              </button>
+              <button
+                id="go-home-error-btn"
+                onClick={() => router.push('/home')}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition"
+              >
+                ← Go Home
+              </button>
+            </div>
           </div>
         ) : filteredRooms.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
@@ -260,6 +324,7 @@ export default function HistoryPage() {
             </p>
             {rooms.length === 0 && (
               <button
+                id="create-room-btn"
                 onClick={() => router.push('/home')}
                 className="mt-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition font-medium"
               >
@@ -290,7 +355,6 @@ export default function HistoryPage() {
                   />
 
                   <div className="flex items-start justify-between gap-3">
-                    {/* Left: icon + info */}
                     <div className="flex items-start gap-3 min-w-0 flex-1">
                       <div
                         className="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0 mt-0.5"
@@ -300,7 +364,6 @@ export default function HistoryPage() {
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        {/* Language badge */}
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span
                             className="text-xs font-semibold px-2 py-0.5 rounded-full"
@@ -319,7 +382,6 @@ export default function HistoryPage() {
                           )}
                         </div>
 
-                        {/* Room ID */}
                         <div className="flex items-center gap-1.5 group/id">
                           <code className="text-xs text-white/55 font-mono truncate max-w-[180px] sm:max-w-[220px]">
                             {room.roomId}
@@ -334,14 +396,12 @@ export default function HistoryPage() {
                           </button>
                         </div>
 
-                        {/* Last activity */}
                         <p className="text-xs text-white/30 mt-1" title={formatFullDate(activityDate)}>
                           Last active {timeAgo(activityDate)}
                         </p>
                       </div>
                     </div>
 
-                    {/* Arrow */}
                     <div className="text-white/20 group-hover:text-white/60 transition text-lg flex-shrink-0 mt-1">
                       →
                     </div>
