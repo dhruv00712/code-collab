@@ -111,9 +111,10 @@ interface Message {
 interface ChatBoxProps {
   roomId: string;
   socket: Socket;
+  onMessage?: () => void;
 }
 
-export default function ChatBox({ roomId, socket }: ChatBoxProps) {
+export default function ChatBox({ roomId, socket, onMessage }: ChatBoxProps) {
   const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -128,6 +129,7 @@ export default function ChatBox({ roomId, socket }: ChatBoxProps) {
   useEffect(() => {
     socket.on('receive-message', (msg: Message) => {
       setMessages(prev => [...prev, msg]);
+      onMessage?.();  // notify parent for unread badge
     });
     socket.on('load-chat-history', (msgs: Message[]) => {
       setMessages(msgs);
@@ -178,7 +180,7 @@ export default function ChatBox({ roomId, socket }: ChatBoxProps) {
     ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
   return (
-    <div className="w-72 flex flex-col border-l border-white/[0.06] bg-[#0d0d0d] shrink-0">
+    <div className="flex-1 flex flex-col border-l border-white/[0.06] bg-[#0d0d0d] overflow-hidden">
 
       {/* Header */}
       <div className="h-10 border-b border-white/[0.06] flex items-center justify-between px-4 shrink-0">
