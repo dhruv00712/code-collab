@@ -83,7 +83,7 @@ npm run dev
 
 🌐 Deployment
 🔗 Frontend (Next.js):
-      https://code-collab-gules.vercel.app
+      https://codeship.vercel.app
 
 🔗 Backend (Express + Socket.IO): 
     https://code-collab-backend-tyrr.onrender.com/

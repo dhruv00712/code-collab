@@ -19,7 +19,7 @@
 // const server = http.createServer(app);
 // const io = new SocketIOServer(server, {
 //   cors: {
-//     origin: ['https://code-collab-gules.vercel.app', 'http://localhost:3000'],
+//     origin: ['https://codeship.vercel.app', 'http://localhost:3000'],
 //     methods: ['GET', 'POST'],
 //     credentials: true,
 //   },
@@ -93,7 +93,7 @@
 
 // //Middlewares
 // app.use(cors({
-//   origin: ['https://code-collab-gules.vercel.app', 'http://localhost:3000'],
+//   origin: ['https://codeship.vercel.app', 'http://localhost:3000'],
 //   credentials: true,
 // }));
 // app.use(express.json());
@@ -169,8 +169,8 @@ const MONGO_URL = process.env.MONGO_URL as string;
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 const ALLOWED_ORIGINS = IS_PROD
-  ? ['https://code-collab-gules.vercel.app']
-  : ['http://localhost:3000', 'https://code-collab-gules.vercel.app'];
+  ? ['https://codeship.vercel.app']
+  : ['http://localhost:3000', 'https://codeship.vercel.app'];
 
 const app = express();
 const server = http.createServer(app);
