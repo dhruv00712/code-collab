@@ -53,7 +53,7 @@ function timeAgo(d?: string) {
 
 // ── Animated Code Preview ────────────────────────────────────────────────────
 const CODE = [
-  { txt: "const room = await CodeCollab.create({", c: "#c792ea" },
+  { txt: "const room = await CodeShip.create({", c: "#c792ea" },
   { txt: '  language: "typescript",', c: "#c3e88d" },
   { txt: '  name: "my-project",', c: "#c3e88d" },
   { txt: "});", c: "#c792ea" },

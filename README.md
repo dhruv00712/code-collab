@@ -1,6 +1,6 @@
-#  CodeCollab - Real-Time Code Collaboration Platform
+#  CodeShip - Real-Time Code Collaboration Platform
 
-**CodeCollab** is a full-stack collaborative code editor that allows multiple users to write, run, and chat about code in real-time. It's like Google Docs but for programmers — with support for multiple languages, real-time sync using WebSockets, and Google authentication.
+**CodeShip** is a full-stack collaborative code editor that allows multiple users to write, run, and chat about code in real-time. It's like Google Docs but for programmers — with support for multiple languages, real-time sync using WebSockets, and Google authentication.
 
 ## Features
 

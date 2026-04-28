@@ -19,7 +19,7 @@
 
 //           {!isPublicPage && (
 //             <header className="p-4 bg-black shadow flex justify-between items-center text-white">
-//               <h1 className="text-2xl font-bold">Welcome to CodeCollab 👨‍💻</h1>
+//               <h1 className="text-2xl font-bold">Welcome to CodeShip 👨‍💻</h1>
 //               <LogoutButton />
 //             </header>
 //           )}
@@ -28,7 +28,7 @@
 
 //           {!isPublicPage && (
 //             <footer className="p-4 bg-white dark:bg-[#2b2b2b] text-center text-sm text-gray-500">
-//               © 2025 CodeCollab. All rights reserved.
+//               © 2025 CodeShip. All rights reserved.
 //             </footer>
 //           )}
 //         </SessionProvider>
@@ -45,14 +45,14 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
 export const metadata: Metadata = {
-  title: 'CodeCollab — Real-time code collaboration',
+  title: 'y — Real-time code collaboration',
   description: 'Collaborate and run code in real-time with your team.',
   robots: 'index, follow',
   verification: {
     google: 'ITBYHim2nmbkDR8vXiWpLVG85JTx2_wCdk4K52bSx8A',
   },
   openGraph: {
-    title: 'CodeCollab',
+    title: 'CodeShip',
     description: 'Real-time collaborative code editor',
     url: 'https://codeship.vercel.app',
     type: 'website',
