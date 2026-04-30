@@ -54,7 +54,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     adapter: MongoDBAdapter(clientPromise),
     secret: process.env.NEXTAUTH_SECRET,
     session: {
-        strategy: 'database', // ✅ Was 'jwt' — this was the main bug
+        strategy: 'database', // ✅ Was 'jwt' - this was the main bug
         maxAge: 30 * 24 * 60 * 60,
     },
     callbacks: {

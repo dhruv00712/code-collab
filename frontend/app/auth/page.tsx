@@ -185,7 +185,7 @@ export default function AuthPage() {
                 </span>
               </h2>
               <p className="text-white/40 text-sm leading-relaxed max-w-xs">
-                Everything your team needs to collaborate on code — live sync, chat, and a built-in runner.
+                Everything your team needs to collaborate on code - live sync, chat, and a built-in runner.
               </p>
             </div>
 
@@ -235,7 +235,7 @@ export default function AuthPage() {
                     {isLogin ? 'Welcome back' : 'Create your account'}
                   </h1>
                   <p className="text-sm text-white/35 mt-1">
-                    {isLogin ? 'Sign in to access your rooms and history.' : 'Start collaborating in seconds — it\'s free.'}
+                    {isLogin ? 'Sign in to access your rooms and history.' : 'Start collaborating in seconds - it\'s free.'}
                   </p>
                 </div>
 

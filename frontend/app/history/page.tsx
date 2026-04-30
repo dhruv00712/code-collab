@@ -56,7 +56,7 @@ function timeAgo(dateStr: string | undefined | null): string | null {
   const then = new Date(dateStr).getTime();
   if (isNaN(then)) return null;
   const diff = Math.floor((Date.now() - then) / 1000);
-  if (diff < 0) return null;      // future date (clock skew) — skip
+  if (diff < 0) return null;      // future date (clock skew) - skip
   if (diff < 5) return 'just now';
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
@@ -81,11 +81,11 @@ function formatFullDate(dateStr: string | undefined | null): string {
 /**
  * Pick the best date to display for a room and the label to show.
  * lastActivity: set only on real user edits (socket code-change / language-change / join).
- * updatedAt:    Mongoose timestamp — bumped on any DB write, unreliable after our fix.
- * createdAt:    Mongoose timestamp — stable, good final fallback.
+ * updatedAt:    Mongoose timestamp - bumped on any DB write, unreliable after our fix.
+ * createdAt:    Mongoose timestamp - stable, good final fallback.
  */
 function bestDate(room: RoomEntry): { label: string; date: string | null } {
-  // lastActivity is only set on real interactions now — trust it if it exists and is valid
+  // lastActivity is only set on real interactions now - trust it if it exists and is valid
   if (room.lastActivity) {
     const t = new Date(room.lastActivity).getTime();
     if (!isNaN(t) && t > 0) return { label: 'Last active', date: room.lastActivity };

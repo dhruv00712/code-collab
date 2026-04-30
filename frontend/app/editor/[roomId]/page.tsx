@@ -102,7 +102,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
       setConnected(false);
       setReconnecting(true);
       reconnectingRef.current = true;
-      // Reconnecting state shown in header pill — no toast needed
+      // Reconnecting state shown in header pill - no toast needed
     });
 
     socket.on('connect_error', () => {
@@ -157,7 +157,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             </span>
             <Separator orientation="vertical" className="h-4 bg-white/10 flex-shrink-0" />
 
-            {/* Room ID — hidden on xs */}
+            {/* Room ID - hidden on xs */}
             <div className="hidden sm:flex items-center gap-1.5">
               <span className="text-xs text-white/30 font-mono">{roomId.slice(0, 8)}…</span>
               <Tooltip>
@@ -173,7 +173,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             {/* Status dot */}
             <Circle size={7} className={connected ? 'fill-emerald-400 text-emerald-400 flex-shrink-0' : 'fill-red-400 text-red-400 flex-shrink-0'} />
 
-            {/* Online users — hidden on xs */}
+            {/* Online users - hidden on xs */}
             {onlineUsers.length > 0 && (
               <div className="hidden sm:flex items-center gap-1">
                 {onlineUsers.slice(0, 4).map((user, i) => (
@@ -196,7 +196,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
           {/* Actions */}
           <div className="flex items-center gap-1 flex-shrink-0">
 
-            {/* Reconnecting indicator — inline pill */}
+            {/* Reconnecting indicator - inline pill */}
             <AnimatePresence>
               {reconnecting && (
                 <motion.div
@@ -241,7 +241,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
         {/* Main content */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Editor — full width on mobile when editor tab, hidden when chat tab */}
+          {/* Editor - full width on mobile when editor tab, hidden when chat tab */}
           <div className={`flex-1 overflow-hidden ${mobileTab === 'chat' ? 'hidden md:flex md:flex-1' : 'flex flex-col'
             }`}>
             <MonacoEditor
@@ -251,7 +251,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             />
           </div>
 
-          {/* Chat — full screen on mobile when chat tab, sidebar on desktop */}
+          {/* Chat - full screen on mobile when chat tab, sidebar on desktop */}
           <div className={`flex flex-col overflow-hidden ${mobileTab === 'editor'
             ? 'hidden md:flex md:w-72'
             : 'flex-1 md:flex-none md:w-72'

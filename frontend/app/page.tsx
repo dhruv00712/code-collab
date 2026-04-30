@@ -26,11 +26,11 @@ function MeshBackground() {
       <div className="absolute inset-0 bg-[#060608]" />
       {/* Orbs */}
       {[
-        { c: '#4f46e5', x: '10%',  y: '25%', s: 600, d: 22 },
-        { c: '#7c3aed', x: '82%',  y: '12%', s: 460, d: 26 },
-        { c: '#0891b2', x: '60%',  y: '68%', s: 380, d: 19 },
-        { c: '#be185d', x: '12%',  y: '78%', s: 340, d: 24 },
-        { c: '#059669', x: '88%',  y: '54%', s: 220, d: 30 },
+        { c: '#4f46e5', x: '10%', y: '25%', s: 600, d: 22 },
+        { c: '#7c3aed', x: '82%', y: '12%', s: 460, d: 26 },
+        { c: '#0891b2', x: '60%', y: '68%', s: 380, d: 19 },
+        { c: '#be185d', x: '12%', y: '78%', s: 340, d: 24 },
+        { c: '#059669', x: '88%', y: '54%', s: 220, d: 30 },
       ].map((o, i) => (
         <motion.div key={i}
           className="absolute rounded-full blur-[140px]"
@@ -67,7 +67,7 @@ const DEMO_LINES = [
 
 const CURSORS = [
   { name: 'Alice', color: '#f472b6', line: 4 },
-  { name: 'Bob',   color: '#34d399', line: 10 },
+  { name: 'Bob', color: '#34d399', line: 10 },
 ];
 
 function CodeDemo() {
@@ -90,7 +90,7 @@ function CodeDemo() {
       {/* Title bar */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
         <div className="flex gap-1.5">
-          {['#ef4444','#f59e0b','#22c55e'].map(c => <div key={c} className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c, opacity: 0.7 }} />)}
+          {['#ef4444', '#f59e0b', '#22c55e'].map(c => <div key={c} className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c, opacity: 0.7 }} />)}
         </div>
         <span className="text-xs text-white/30 ml-2 font-mono flex items-center gap-1.5"><Terminal size={11} />main.ts</span>
         <div className="ml-auto flex items-center gap-1.5">
@@ -199,7 +199,7 @@ function Step({ n, title, desc, icon: Icon, color }: { n: number; title: string;
 }
 
 // ─── Marquee ─────────────────────────────────────────────────────────────────
-const LANGS = ['TypeScript','JavaScript','Python','Go','Rust','C++','Java','Ruby','PHP','C#','HTML','CSS','Bash','C'];
+const LANGS = ['TypeScript', 'JavaScript', 'Python', 'Go', 'Rust', 'C++', 'Java', 'Ruby', 'PHP', 'C#', 'HTML', 'CSS', 'Bash', 'C'];
 function LangMarquee() {
   const doubled = [...LANGS, ...LANGS];
   return (
@@ -275,7 +275,7 @@ export default function LandingPage() {
               </h1>
 
               <p className="mt-5 text-white/45 text-lg leading-relaxed max-w-lg">
-                Collaborative coding rooms with live sync, multi-cursor editing, built-in chat, and an instant code runner — no setup required.
+                Collaborative coding rooms with live sync, multi-cursor editing, built-in chat, and an instant code runner - no setup required.
               </p>
             </motion.div>
 
@@ -309,7 +309,7 @@ export default function LandingPage() {
             </motion.div>
           </div>
 
-          {/* Right — Code Demo */}
+          {/* Right - Code Demo */}
           <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}>
             <CodeDemo />
@@ -384,9 +384,9 @@ export default function LandingPage() {
 
             <Reveal delay={0.16} className="md:col-span-2">
               <BentoCard icon={Play} title="Instant Code Runner" color="#06b6d4" className="h-full"
-                desc="Execute your code in 14 languages with a single click. Output appears inline — no context switching, no setup.">
+                desc="Execute your code in 14 languages with a single click. Output appears inline - no context switching, no setup.">
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {['Python','JavaScript','TypeScript','Go','Rust','C++','Java'].map(l => (
+                  {['Python', 'JavaScript', 'TypeScript', 'Go', 'Rust', 'C++', 'Java'].map(l => (
                     <span key={l} className="text-xs px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-300/70 border border-cyan-500/20 font-mono">{l}</span>
                   ))}
                   <span className="text-xs px-2.5 py-1 rounded-lg bg-white/5 text-white/30 border border-white/10">+7 more</span>
@@ -401,7 +401,7 @@ export default function LandingPage() {
 
             <Reveal delay={0.24}>
               <BentoCard icon={Lock} title="Secure by Default" color="#f59e0b" className="h-full"
-                desc="JWT-protected rooms, rate limiting, and authenticated history — your code stays yours." />
+                desc="JWT-protected rooms, rate limiting, and authenticated history - your code stays yours." />
             </Reveal>
 
             <Reveal delay={0.28} className="md:col-span-2">
@@ -436,7 +436,7 @@ export default function LandingPage() {
               </h2>
               <div className="space-y-10">
                 <Step n={1} icon={Code2} color="#6366f1" title="Create a room" desc="Click 'Create New Room' and get a unique link instantly. No configuration needed." />
-                <Step n={2} icon={Users} color="#8b5cf6" title="Invite collaborators" desc="Share the room ID or link with your team. They join with one click — no sign-up required to view." />
+                <Step n={2} icon={Users} color="#8b5cf6" title="Invite collaborators" desc="Share the room ID or link with your team. They join with one click - no sign-up required to view." />
                 <Step n={3} icon={Play} color="#10b981" title="Code, chat, run" desc="Edit together in real time, discuss in the sidebar, and run code without leaving the page." />
               </div>
             </Reveal>
@@ -484,7 +484,7 @@ export default function LandingPage() {
                   Ready to build together?
                 </h2>
                 <p className="text-white/45 text-lg mb-10 max-w-xl mx-auto">
-                  Create your first room in seconds. No credit card, no setup — just open the editor and share the link.
+                  Create your first room in seconds. No credit card, no setup - just open the editor and share the link.
                 </p>
                 <div className="flex flex-wrap justify-center gap-4">
                   <Link href="/auth"

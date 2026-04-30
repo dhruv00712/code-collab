@@ -313,7 +313,7 @@ export default function HomePage() {
                   </span>
                 </h1>
                 <p className="mt-4 text-white/40 text-base sm:text-lg max-w-md leading-relaxed">
-                  Collaborative rooms with live sync, chat, multi-file support — and a built-in code runner.
+                  Collaborative rooms with live sync, chat, multi-file support - and a built-in code runner.
                 </p>
               </div>
             </motion.div>
@@ -364,7 +364,7 @@ export default function HomePage() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
               className="flex items-center gap-6 text-xs text-white/30">
               {[
-                { icon: Users, label: `${rooms.length > 0 ? rooms.length : '—'} recent rooms` },
+                { icon: Users, label: `${rooms.length > 0 ? rooms.length : '-'} recent rooms` },
                 { icon: Files, label: '14 languages' },
                 { icon: Terminal, label: 'Live runner' },
               ].map(({ icon: Icon, label }, i) => (
@@ -410,7 +410,7 @@ export default function HomePage() {
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                       className="px-5 py-8 text-center text-xs text-white/25 flex flex-col items-center gap-2">
                       <Files size={22} className="text-white/15" />
-                      No rooms yet — create one!
+                      No rooms yet - create one!
                     </motion.div>
                   ) : rooms.map((room, i) => {
                     const lang = room.language || 'javascript';
@@ -473,7 +473,7 @@ export default function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <Feat icon={Zap} title="Real-Time Sync" desc="All edits broadcast over WebSocket to every collaborator instantly." color="#6366f1" delay={0} />
             <Feat icon={MessageSquare} title="Live Chat" desc="Persistent room chat keeps conversation tied to your code." color="#8b5cf6" delay={0.08} />
-            <Feat icon={Play} title="Code Runner" desc="Execute in 14 languages — output appears inline, no context switch." color="#06b6d4" delay={0.16} />
+            <Feat icon={Play} title="Code Runner" desc="Execute in 14 languages - output appears inline, no context switch." color="#06b6d4" delay={0.16} />
             <Feat icon={Files} title="Multi-File" desc="Create and manage multiple files per room with per-file sync." color="#10b981" delay={0.24} />
           </div>
         </div>
