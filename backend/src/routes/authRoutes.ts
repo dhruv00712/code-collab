@@ -56,7 +56,7 @@ const router = express.Router();
 router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
 
-// Google login — create/find user and return JWT
+// Google login - create/find user and return JWT
 router.post('/google', async (req, res) => {
   const { email, name, image } = req.body;
 

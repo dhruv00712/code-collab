@@ -45,7 +45,7 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
 export const metadata: Metadata = {
-  title: 'CodeShip — Real-time code collaboration',
+  title: 'CodeShip - Real-time code collaboration',
   description: 'Collaborate and run code in real-time with your team.',
   icons: {
     icon: '/CodeShip_favicon.png',

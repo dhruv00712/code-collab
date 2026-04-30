@@ -48,7 +48,7 @@ router.get('/:userId', authenticateToken, async (req: AuthenticatedRequest, res)
   }
 });
 
-// DELETE /api/rooms/:roomId — creator deletes the whole room, participant removes themselves
+// DELETE /api/rooms/:roomId - creator deletes the whole room, participant removes themselves
 router.delete('/:roomId', authenticateToken, async (req: AuthenticatedRequest, res) => {
   const { roomId } = req.params;
   const userId = req.user;

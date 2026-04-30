@@ -246,7 +246,7 @@ setInterval(async () => {
       if (code) {
         await Room.findOneAndUpdate(
           { roomId },
-          { $set: { code } },          // only persist code — do NOT touch lastActivity or updatedAt
+          { $set: { code } },          // only persist code - do NOT touch lastActivity or updatedAt
           { upsert: true, timestamps: false }  // timestamps:false prevents Mongoose from bumping updatedAt
         );
       }
@@ -277,7 +277,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Switch file — send code for that file
+  // Switch file - send code for that file
   socket.on('switch-file', async ({ roomId, fileId }) => {
     if (!roomId || !fileId) return;
     try {
@@ -373,7 +373,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle code updates — save to Redis instantly
+  // Handle code updates - save to Redis instantly
   socket.on('code-change', async ({ roomId, code, fileId }) => {
     if (!roomId) return;
     socket.to(roomId).emit('code-change', { code, fileId });
